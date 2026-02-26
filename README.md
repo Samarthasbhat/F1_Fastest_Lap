@@ -12,3 +12,8 @@ This is use to check the fastest lap based on the Year, Weekend, Session types (
 | SQ   | Sprint Shootout    | Sets sprint grid   |
 | S    | Sprint Race        | Short race         |
 | R    | Grand Prix         | Main race          |
+
+
+## Tire Degradation - 2026 'LEC'
+<img width="940" height="498" alt="image" src="https://github.com/user-attachments/assets/63a05cce-8c68-49ed-a2eb-ad17b7b0e59b" />
+
