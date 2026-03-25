@@ -5,6 +5,7 @@ Formula 1 cars operate at the absolute limit of performance, where tire behavior
 This project analyzes tire degradation during the 2026 Formula 1 Pre-Season Testing using real telemetry and timing data provided by the FastF1 library. By visualizing lap times as a horizontal bar chart colored by tire compound, the analysis highlights how different tires perform over successive laps and how performance evolves as tires wear.
 
 Such insights are widely used in motorsport engineering and data analysis to evaluate consistency, compare compounds, and identify potential performance trends under testing conditions.
+
 ## Formula 1 Session Types (FastF1 Codes)
 | Code | Session            | Purpose            |
 |------|--------------------|--------------------|
@@ -45,14 +46,14 @@ pip install fastf1 matplotlib pandas
 
 #### Load Session
 ```python
- schedule = fastf1.get_event_schedule(2026)
+schedule = fastf1.get_event_schedule(2026)
 testing_event = schedule[schedule['EventName'] == 'Pre-Season Testing'].iloc[0]
 session = testing_event.get_session(1)
 session.load()
 ```
 #### Filter Driver Laps
 ```python
-laps = session.laps.pick_drivers('VER').pick_quicklaps()
+laps = session.laps.pick_drivers('LEC').pick_quicklaps()
 ```
 
 #### Plot Degradation
