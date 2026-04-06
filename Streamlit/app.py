@@ -2,10 +2,18 @@ import streamlit as st
 import fastf1
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+import os
+
+# -------------------- CONFIG --------------------
 
 st.set_page_config(page_title="F1 Analysis", layout="wide")
-
 st.title("🏎️ F1 Tire Degradation Analysis")
+
+# -------------------- CACHE SETUP (FIXED) --------------------
+
+cache_dir = "cache"
+os.makedirs(cache_dir, exist_ok=True)
+fastf1.Cache.enable_cache(cache_dir)
 
 # -------------------- YEAR --------------------
 
@@ -15,7 +23,6 @@ year = st.selectbox("Select Year", [2023, 2024])
 
 @st.cache_data
 def get_schedule(year):
-    fastf1.Cache.enable_cache('../cache')
     return fastf1.get_event_schedule(year)
 
 schedule = get_schedule(year)
@@ -27,7 +34,7 @@ event_name = st.selectbox("Select Grand Prix", event_names)
 
 event = schedule[schedule['EventName'] == event_name].iloc[0]
 
-# -------------------- SESSION / TESTING LOGIC --------------------
+# -------------------- SESSION / TESTING --------------------
 
 is_testing = "Testing" in event_name
 
@@ -36,7 +43,6 @@ if is_testing:
 
     day = st.selectbox("Select Testing Day", [1, 2, 3])
     session_type = day
-
 else:
     available_sessions = []
 
@@ -51,8 +57,6 @@ else:
 
 @st.cache_data
 def load_session(year, event_name, session_type):
-    fastf1.Cache.enable_cache('../cache')
-
     schedule = fastf1.get_event_schedule(year)
     event = schedule[schedule['EventName'] == event_name].iloc[0]
 
@@ -77,7 +81,7 @@ driver = st.selectbox("Select Driver", drivers)
 
 driver_laps = session.laps.pick_drivers(driver).pick_accurate()
 
-# Remove unknown compounds
+# Remove unknown compounds (clean data)
 driver_laps = driver_laps[driver_laps['Compound'] != 'TEST_UNKNOWN']
 
 # -------------------- DEBUG --------------------
