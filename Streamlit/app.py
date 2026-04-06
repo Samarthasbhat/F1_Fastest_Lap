@@ -36,9 +36,9 @@ event = schedule[schedule['EventName'] == event_name].iloc[0]
 
 # -------------------- SESSION / TESTING --------------------
 
-is_testing = "Testing" in event_name
+is_testing = event['EventFormat'] == 'testing'
 
-if is_testing:
+if event['EventFormat'] == 'testing':
     st.info("🧪 Pre-Season Testing → Select Day")
 
     day = st.selectbox("Select Testing Day", [1, 2, 3])
