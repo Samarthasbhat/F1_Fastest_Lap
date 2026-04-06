@@ -17,7 +17,7 @@ fastf1.Cache.enable_cache(cache_dir)
 
 # -------------------- YEAR --------------------
 
-year = st.selectbox("Select Year", [2023, 2024])
+year = st.selectbox("Select Year", [2022, 2023, 2024, 2025, 2026])
 
 # -------------------- LOAD SCHEDULE --------------------
 
