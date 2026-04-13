@@ -1,63 +1,123 @@
-# F1 Fastest Lap | F1 Analytics | Python | Data Visualization 
+# F1 Analytics Dashboard
 
-Formula 1 cars operate at the absolute limit of performance, where tire behavior plays a crucial role in lap time, race strategy, and overall competitiveness. Understanding how tires degrade over a stint is essential for predicting performance drop-off and optimizing pit stop decisions.
+A full-stack Formula 1 data analysis dashboard built using Python, Streamlit, and FastF1.
+This application provides insights into race performance, tire degradation, driver comparison, telemetry, and championship standings.
 
-This project analyzes tire degradation during the 2026 Formula 1 Pre-Season Testing using real telemetry and timing data provided by the FastF1 library. By visualizing lap times as a horizontal bar chart colored by tire compound, the analysis highlights how different tires perform over successive laps and how performance evolves as tires wear.
+---
 
-Such insights are widely used in motorsport engineering and data analysis to evaluate consistency, compare compounds, and identify potential performance trends under testing conditions.
+## Features
 
-## Formula 1 Session Types (FastF1 Codes)
-| Code | Session            | Purpose            |
-|------|--------------------|--------------------|
-| FP1  | Practice 1         | Setup & testing    |
-| FP2  | Practice 2         | Long runs          |
-| FP3  | Practice 3         | Final practice     |
-| Q    | Qualifying         | Sets race grid     |
-| SQ   | Sprint Shootout    | Sets sprint grid   |
-| S    | Sprint Race        | Short race         |
-| R    | Grand Prix         | Main race          |
+### Tire Degradation Analysis
 
-#### Tech Stack
+* Visualize lap times across different tire compounds
+* Identify performance trends over laps
 
-- Python 3.x
-- FastF1
-- Matplotlib
-- Pandas
+### Driver Comparison
 
+* Compare lap times between two drivers
+* View average lap performance metrics
 
-## Tire Degradation - 2026 'LEC'
-<img width="940" height="498" alt="image" src="https://github.com/user-attachments/assets/63a05cce-8c68-49ed-a2eb-ad17b7b0e59b" />
+### Championship Standings
 
+* Driver standings
+* Constructor standings
+* Podium highlighting
+* API fallback system for improved reliability
 
-### Features
-- Uses real F1 timing data via FastF1
-- Supports 2026 Pre-Season Testing sessions
-- Filters competitive laps only
-- Visualizes degradation across ALL tire compounds
-- Horizontal bar graph for clear stint analysis
-- Custom legend for tire types
-- Clean, presentation-ready plot
+### Interactive Telemetry
 
+* Speed vs distance comparison
+* Zoom and hover for detailed analysis
+* Compare fastest laps between drivers
+* Built using Plotly for interactivity
 
-#### Installation
-```python
-pip install fastf1 matplotlib pandas
+---
+
+## Tech Stack
+
+* Frontend: Streamlit
+* Data Source: FastF1
+* Visualization: Matplotlib, Plotly
+* API: Jolpica (Ergast-compatible)
+* Language: Python
+
+---
+
+## Project Structure
+
+```
+F1_Analytics/
+│
+├── app.py              # Main Streamlit application
+├── standings.py        # Standings module (API handling)
+├── api.py              # Optional FastAPI backend
+├── requirements.txt
+└── README.md
 ```
 
-#### Load Session
-```python
-schedule = fastf1.get_event_schedule(2026)
-testing_event = schedule[schedule['EventName'] == 'Pre-Season Testing'].iloc[0]
-session = testing_event.get_session(1)
-session.load()
+---
+
+## Installation
+
+### Clone the repository
+
 ```
-#### Filter Driver Laps
-```python
-laps = session.laps.pick_drivers('LEC').pick_quicklaps()
+git clone https://github.com/your-username/f1-analytics-dashboard.git
+cd f1-analytics-dashboard
 ```
 
-#### Plot Degradation
-```python
-plt.barh(laps['LapNumber'], lap_times, color=colors)
+### Install dependencies
+
 ```
-⚠️ Note: Testing sessions involve experimental runs and mixed conditions, so lap times are not representative of competitive race pace.
+pip install -r requirements.txt
+```
+
+### Run the application
+
+```
+streamlit run app.py
+```
+
+---
+
+## Usage
+
+1. Select a year
+2. Choose a Grand Prix
+3. Select a session
+4. Choose a mode:
+
+   * Single Driver
+   * Comparison
+   * Standings
+   * Telemetry
+
+---
+
+## Notes
+
+* Some sessions may not contain complete data
+* Older seasons may have limited availability
+* Telemetry requires valid lap data
+
+---
+
+## Future Improvements
+
+* Throttle and brake telemetry
+* Delta time comparison
+* Track map visualization
+* Deployment (Streamlit Cloud / API hosting)
+
+---
+
+## License
+
+This project is intended for educational and portfolio purposes.
+
+---
+
+## Author
+
+Samartha Bhat
+https://github.com/Samarthasbhat
