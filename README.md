@@ -46,7 +46,7 @@ This application provides insights into race performance, tire degradation, driv
 ## Project Structure
 
 ```
-F1_Analytics/
+Streamlit/
 │
 ├── app.py              # Main Streamlit application
 ├── standings.py        # Standings module (API handling)
