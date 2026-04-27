@@ -1,4 +1,4 @@
-# F1 Analytics Dashboard
+# F1 Analytics Dashboard - [Link](https://f1fastestlap.streamlit.app/)
 
 A full-stack Formula 1 data analysis dashboard built using Python, Streamlit, and FastF1.
 This application provides insights into race performance, tire degradation, driver comparison, telemetry, and championship standings.
