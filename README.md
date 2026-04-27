@@ -92,10 +92,11 @@ streamlit run app.py
 3. Select a session
 4. Choose a mode:
 
-   * Single Driver
+   * Tire Performance
    * Comparison
    * Standings
    * Telemetry
+   * Year vs Year
 
 ---
 
