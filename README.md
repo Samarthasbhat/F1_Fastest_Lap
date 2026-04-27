@@ -31,6 +31,11 @@ This application provides insights into race performance, tire degradation, driv
 * Compare fastest laps between drivers
 * Built using Plotly for interactivity
 
+### Year vs Year
+* Compare single driver with different year, same track
+* Compound of tires used
+* Summary of two years
+* Interactive Graph
 ---
 
 ## Tech Stack
@@ -99,16 +104,6 @@ streamlit run app.py
 * Some sessions may not contain complete data
 * Older seasons may have limited availability
 * Telemetry requires valid lap data
-
----
-
-## Future Improvements
-
-* Throttle and brake telemetry
-* Delta time comparison
-* Track map visualization
-* Deployment (Streamlit Cloud / API hosting)
-
 ---
 
 ## License
