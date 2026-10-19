@@ -1,3 +1,5 @@
+import os
+
 import fastf1
 import fastf1.plotting
 import matplotlib.pyplot as plt
@@ -8,6 +10,7 @@ from drs import draw_drs_zones, draw_detection_line, update_car_drs_style
 # =============================
 # SETUP
 # =============================
+os.makedirs("cache", exist_ok=True)
 fastf1.Cache.enable_cache("cache")
 fastf1.plotting.setup_mpl()
 
