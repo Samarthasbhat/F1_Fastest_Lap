@@ -1,4 +1,5 @@
 import os
+from turtle import st
 
 import fastf1
 import fastf1.plotting
@@ -33,7 +34,18 @@ all_driver_numbers = session.drivers
 # =============================
 # TRACK BACKGROUND
 # =============================
-lap = session.laps.pick_fastest()
+# lap = session.laps.pick_fastest()
+try:
+    laps = session.laps
+    if laps is None or laps.empty:
+        raise ValueError("empty")
+    lap = laps.pick_fastest()
+except Exception:
+    st.warning(
+        "Lap data isn't available for this session right now. "
+        "Try another race, session or year."
+    )
+    st.stop()
 track_tel = lap.get_telemetry()
 
 fig, ax = plt.subplots(figsize=(14, 8))
