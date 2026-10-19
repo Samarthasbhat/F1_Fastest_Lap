@@ -1,5 +1,5 @@
 import os
-from turtle import st
+from streamlit import st
 
 import fastf1
 import fastf1.plotting
