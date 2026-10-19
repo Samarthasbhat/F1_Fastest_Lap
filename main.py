@@ -1,6 +1,5 @@
 import os
-from streamlit import st
-
+import streamlit as st
 import fastf1
 import fastf1.plotting
 import matplotlib.pyplot as plt
