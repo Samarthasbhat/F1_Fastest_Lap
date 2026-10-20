@@ -1,0 +1,7 @@
+streamlit
+fastf1
+matplotlib
+pandas
+plotly
+numpy 
+requests
