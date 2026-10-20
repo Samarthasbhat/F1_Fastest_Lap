@@ -1,119 +1,121 @@
-# F1 Analytics Dashboard - [Link](https://f1fastestlap.streamlit.app/)
+# F1 Tyre Degradation Analyzer
 
-A full-stack Formula 1 data analysis dashboard built using Python, Streamlit, and FastF1.
-This application provides insights into race performance, tire degradation, driver comparison, telemetry, and championship standings.
+A Python tool that loads Formula 1 timing data, cleans and fuel-corrects lap times, estimates tyre degradation for each stint, and flags possible tyre "cliffs". Results can be viewed as a static chart or as a lap-by-lap replay dashboard.
 
----
+Built with [FastF1](https://github.com/theOehrly/Fast-F1). **The analysis uses data from the 2021 and 2022 seasons only.**
 
-## Features
+![Dashboard](Streamlit/image.png)
 
-### Tire Degradation Analysis
 
-* Visualize lap times across different tire compounds
-* Identify performance trends over laps
+## Problem statement
 
-### Driver Comparison
+Raw F1 lap times mix tyre wear with fuel burn, traffic, safety cars and pit laps, so it is hard to tell how quickly a tyre is actually degrading during a run.
 
-* Compare lap times between two drivers
-* View average lap performance metrics
+## Data scope
 
-### Championship Standings
+- **Seasons:** 2021 and 2022 only, loaded through FastF1.
+- **Sessions:** races are the main use case (`SESSION_MODE = "race"`). Testing sessions can be loaded with `SESSION_MODE = "testing"` for years where FastF1 provides them.
+- **Do not pool the two seasons.** 2022 brought a major regulation change (new cars and 18-inch tyres), so tyre behaviour in 2021 and 2022 is not directly comparable. Analyse each season on its own.
 
-* Driver standings
-* Constructor standings
-* Podium highlighting
-* API fallback system for improved reliability
+## What it does
 
-### Interactive Telemetry
+- **Cleans the data:** removes in-laps, out-laps, unusually slow laps and (in race mode) safety car, virtual safety car and yellow-flag laps.
+- **Corrects for fuel burn:** adds back the time a car gains as it gets lighter, so tyre wear is not hidden.
+- **Estimates degradation:** fits a straight line per stint and reports the slope in seconds lost per lap.
+- **Shows sensitivity:** prints corrected slopes for three assumed fuel effects (0.03, 0.05 and 0.07 s/lap) so you see a range instead of one falsely precise number.
+- **Flags possible tyre cliffs:** raises an alert when two laps in a row are well off the stint's trend.
+- **Replays a session lap by lap** in a dashboard window, where the monitor only uses laps that have already happened.
 
-* Speed vs distance comparison
-* Zoom and hover for detailed analysis
-* Compare fastest laps between drivers
-* Built using Plotly for interactivity
+## Project structure
 
-### Year vs Year
-* Compare single driver with different year, same track
-* Compound of tires used
-* Summary of two years
-* Interactive Graph
----
+| File | Purpose |
+|---|---|
+| `tyre_deg.py` | Settings, data loading, fuel correction, stint slopes and the static chart |
+| `live_monitor.py` | `StintMonitor` class: lap-by-lap filtering, slope updates and cliff alerts (terminal replay) |
+| `live_window.py` | Replay dashboard: live chart on the left, status log on the right |
+| `tests/` | Unit tests for the fuel correction and the stint monitor |
 
-## Tech Stack
-
-* Frontend: Streamlit
-* Data Source: FastF1
-* Visualization: Matplotlib, Plotly
-* API: Jolpica (Ergast-compatible)
-* Language: Python
-
----
-
-## Project Structure
-
-```
-Streamlit/
-│
-├── app.py              # Main Streamlit application
-├── standings.py        # Standings module (API handling)
-├── api.py              # Optional FastAPI backend
-├── requirements.txt
-└── README.md
-```
-
----
+Keep the three scripts in the same folder. `live_monitor.py` and `live_window.py` import their settings from `tyre_deg.py`.
 
 ## Installation
 
-### Clone the repository
+```bash
+git clone <your-repo-url>
+cd <your-repo-folder>
 
-```
-git clone https://github.com/your-username/f1-analytics-dashboard.git
-cd f1-analytics-dashboard
-```
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-### Install dependencies
-
-```
 pip install -r requirements.txt
 ```
 
-### Run the application
+`requirements.txt`:
 
 ```
-streamlit run app.py
+fastf1>=3.8.3
+matplotlib
+numpy
 ```
-
----
 
 ## Usage
 
-1. Select a year
-2. Choose a Grand Prix
-3. Select a session
-4. Choose a mode:
+Edit the settings at the top of `tyre_deg.py`. Use a 2021 or 2022 season:
 
-   * Tire Performance
-   * Comparison
-   * Standings
-   * Telemetry
-   * Year vs Year
+```python
+YEAR = 2022                # 2021 or 2022
+SESSION_MODE = "race"      # "race" or "testing"
+EVENT = "Azerbaijan"       # race mode: event name or round number
+TEST_NUMBER = 2            # testing mode only
+DAY = 1                    # testing mode only
+DRIVER = "LEC"             # three-letter driver code
+```
 
----
+Then run one of:
 
-## Notes
+```bash
+python tyre_deg.py       # static chart + slope table
+python live_window.py    # replay dashboard (adjust REPLAY_DELAY_S to change speed)
+python live_monitor.py   # replay printed in the terminal
+```
 
-* Some sessions may not contain complete data
-* Older seasons may have limited availability
-* Telemetry requires valid lap data
----
+The first run downloads data and can take a few minutes. Later runs use the local `cache` folder.
+
+To run the tests:
+
+```bash
+pip install pytest
+pytest
+```
+
+## How it works
+
+1. **Load:** FastF1 loads the session. Telemetry, weather and messages are skipped because only lap data is needed.
+2. **Filter:** quick laps only, no in/out laps, and (race mode) green-flag laps only.
+3. **Fuel-correct:** for each stint, `corrected time = lap time + fuel effect × laps since the stint's first lap`. Only the burn rate matters, because each stint is compared with its own first lap.
+4. **Fit:** a straight line of corrected lap time against tyre life gives the slope in seconds per lap. Stints with fewer than 5 laps are skipped.
+5. **Alert:** in the replay, a lap far above the trend predicted from the stint's earlier laps counts as a cliff candidate, and two in a row raise an alert.
+
+## Assumptions and limitations
+
+Please read these before drawing conclusions from the output.
+
+- **The fuel effect (0.05 s/lap) is an assumption,** not measured data. The true value depends on the car and the season. Treat results as a range.
+- **The 22 s pit loss** used for the "indicative stint length" is a placeholder and varies by circuit.
+- **Absolute lap times between stints are not comparable,** because starting fuel loads differ. Only the slope within each stint is meaningful.
+- **Short stints give unreliable slopes.** Engine modes, traffic and driver push level also change lap times within a run.
+- **2021 and 2022 should not be compared directly,** because of the 2022 regulation change.
+- **The replay is not live.** FastF1 can only record a live feed for processing afterwards, so the "live" monitor replays a finished session.
+- **Validation is limited.** The correction and filtering logic is covered by unit tests on synthetic data, but the outputs have not been compared with team-grade analysis.
+
+
+## Tech stack
+
+Python, FastF1, pandas, NumPy, Matplotlib, pytest.
+
+## Data and disclaimer
+
+Timing data comes from the Formula 1 live timing service through FastF1. This project is unofficial and is not associated with Formula 1, the FIA or any team. Formula 1, F1 and related marks are trademarks of their respective owners.
 
 ## License
 
-This project is intended for educational and portfolio purposes.
-
----
-
-## Author
-
-Samartha Bhat
-https://github.com/Samarthasbhat
+Add a license of your choice (for example MIT) before publishing.
