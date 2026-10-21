@@ -1,10 +1,11 @@
 # F1 Tyre Degradation Analyzer
 
-A Python tool that loads Formula 1 timing data, cleans and fuel-corrects lap times, estimates tyre degradation for each stint, and flags possible tyre "cliffs". Results can be viewed as a static chart or as a lap-by-lap replay dashboard.
+An F1 analysis project built on [FastF1](https://github.com/theOehrly/Fast-F1), with two parts:
 
-Built with [FastF1](https://github.com/theOehrly/Fast-F1). **The analysis uses data from the 2021 and 2022 seasons only.**
+- **Streamlit app:** [live demo](https://f1analyseboard.streamlit.app/) [one line on what it shows, e.g. driver, lap and fastest-lap comparison]
+- **Tyre degradation module:** cleans and fuel-corrects lap times, estimates degradation per stint and flags possible tyre cliffs.
 
-![Dashboard](Streamlit/image.png)
+![Streamlit dashboard](Streamlit/image.png)
 
 
 ## Problem statement
@@ -37,26 +38,22 @@ Raw F1 lap times mix tyre wear with fuel burn, traffic, safety cars and pit laps
 
 Keep the three scripts in the same folder. `live_monitor.py` and `live_window.py` import their settings from `tyre_deg.py`.
 
+
+
 ## Installation
+```
+git clone https://github.com/Samarthasbhat/F1_Fastest_Lap.git
+cd F1_Fastest_Lap
 
-```bash
-git clone <your-repo-url>
-cd <your-repo-folder>
-
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
 
 pip install -r requirements.txt
 ```
-
-`requirements.txt`:
-
+## Run the Streamlit app:
+```bash
+streamlit run app.py        # replace app.py if your entry file is different
 ```
-fastf1>=3.8.3
-matplotlib
-numpy
-```
-
 ## Usage
 
 Edit the settings at the top of `tyre_deg.py`. Use a 2021 or 2022 season:
@@ -110,12 +107,10 @@ Please read these before drawing conclusions from the output.
 
 ## Tech stack
 
-Python, FastF1, pandas, NumPy, Matplotlib, pytest.
+Python, FastF1, pandas, NumPy, Matplotlib, pytest, Streamlit
 
 ## Data and disclaimer
 
 Timing data comes from the Formula 1 live timing service through FastF1. This project is unofficial and is not associated with Formula 1, the FIA or any team. Formula 1, F1 and related marks are trademarks of their respective owners.
 
-## License
 
-Add a license of your choice (for example MIT) before publishing.
