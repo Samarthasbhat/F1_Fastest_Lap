@@ -1,13 +1,13 @@
 import os
 import streamlit as st
 import fastf1
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
 import plotly.graph_objects as go
+# CHANGED 1: matplotlib and Patch imports removed. Every chart is now Plotly, so all modes look and behave the same.
 
 # -------------------- CONFIG --------------------
 
-st.set_page_config(page_title="F1 Analysis", layout="wide")
+# CHANGED 2: browser-tab title now matches the page heading
+st.set_page_config(page_title="F1 Analytics Dashboard", page_icon="🏎️", layout="wide")
 
 # Seasons where FastF1 returns lap data. Edit after testing (year_check.py).
 LAP_YEARS = [2022, 2021]
@@ -26,14 +26,21 @@ COLOR_MAP = {
     "WET": "#0066ff",
 }
 
+# CHANGED 3: "Tire" -> "Tyre" everywhere, and the mode name lives in one constant
+# so the radio button and the `if mode == ...` check can never drift apart.
+MODE_TYRE = "Tyre Performance"
+MODES = [MODE_TYRE, "Comparison", "Standings", "Telemetry", "Year vs Year"]
+
 st.markdown("""
 # 🏎️ F1 Analytics Dashboard
-### 🛞 Tire Degradation & Performance Insights
+### 🛞 Race Analysis & Performance Insights
 """)
 
+# CHANGED 4: shorter note that also says which seasons each mode covers, plus the disclaimer
 st.caption(
-    "Data source: FastF1 (F1 timing data + Ergast/Jolpica). "
-    "Lap data may be unavailable for some seasons depending on the data source."
+    f"Data: FastF1 and Ergast/Jolpica. Lap-based modes cover {', '.join(str(y) for y in sorted(LAP_YEARS))}; "
+    "standings cover more seasons. Some sessions may have limited lap data. "
+    "Unofficial project, not associated with Formula 1 or the FIA."
 )
 
 # -------------------- CACHE --------------------
@@ -86,20 +93,34 @@ def show_load_error(error):
 
 
 def session_names(event_row):
-    return [
-        event_row.get(f"Session{i}")
-        for i in range(1, 6)
-        if event_row.get(f"Session{i}")
-    ]
+    names = []
+    for i in range(1, 6):
+        name = event_row.get(f"Session{i}")
+        # CHANGED 5: accept only real, non-empty text (a missing value is truthy and would slip through)
+        if isinstance(name, str) and name:
+            names.append(name)
+    return names
+
+
+def default_session_index(names):
+    # CHANGED 6: open on the Race, which has cleaner tyre data than Practice 1
+    return names.index("Race") if "Race" in names else 0
+
+
+def drivers_by_laps(laps):
+    # CHANGED 7: drivers ranked by laps completed, so the defaults are drivers with plenty of data
+    # (the old default was whoever came first alphabetically, e.g. ALB)
+    return list(laps["Driver"].dropna().value_counts().index)
+
+
+def clean_laps(laps, driver):
+    driver_laps = laps.pick_drivers(driver).pick_accurate()
+    return driver_laps[driver_laps["Compound"] != "TEST_UNKNOWN"]
 
 
 # -------------------- MODE --------------------
 
-mode = st.radio(
-    "🏁 Select Mode",
-    ["Tire Performance", "Comparison", "Standings", "Telemetry", "Year vs Year"],
-    horizontal=True,
-)
+mode = st.radio("🏁 Select Mode", MODES, horizontal=True)
 
 # -------------------- STANDINGS --------------------
 
@@ -120,6 +141,12 @@ if mode == "Standings":
 if mode == "Year vs Year":
 
     st.subheader("📅 Year vs Year — Same Driver, Same Track")
+
+    # CHANGED 8: honest caveat; 2022 was a regulation change, so this is not a like-for-like driver comparison
+    st.caption(
+        "2022 brought new cars and 18-inch tyres, so differences between 2021 and 2022 "
+        "reflect the car and tyre change as well as the driver."
+    )
 
     if len(LAP_YEARS) < 2:
         st.warning("Year vs Year needs at least two seasons with lap data.")
@@ -151,14 +178,20 @@ if mode == "Year vs Year":
         st.error("❌ No common races found between the selected years.")
         st.stop()
 
-    race_name = st.selectbox("🏁 Select Grand Prix", common_events, key="yvy_race")
+    c_race, c_session = st.columns(2)
+    with c_race:
+        race_name = st.selectbox("🏁 Select Grand Prix", common_events, key="yvy_race")
 
     event_row_a = schedule_a[schedule_a["EventName"] == race_name].iloc[0]
-    session_type = st.selectbox(
-        "🗂️ Select Session", session_names(event_row_a), key="yvy_session"
-    )
+    names_a = session_names(event_row_a)
+    with c_session:
+        session_type = st.selectbox(
+            "🗂️ Select Session", names_a,
+            index=default_session_index(names_a), key="yvy_session"
+        )
 
-    with st.spinner(f"Loading {year_a} session..."):
+    # CHANGED 9: spinner says the first load can be slow
+    with st.spinner(f"Loading {year_a} session... the first load can take a few minutes"):
         session_a, err_a = try_load(year_a, race_name, session_type)
     with st.spinner(f"Loading {year_b} session..."):
         session_b, err_b = try_load(year_b, race_name, session_type)
@@ -175,13 +208,13 @@ if mode == "Year vs Year":
         st.warning("⚠️ No common drivers found between the two years for this race.")
         st.stop()
 
-    driver = st.selectbox("🧑‍✈️ Select Driver", common_drivers, key="yvy_driver")
+    ranked = [d for d in drivers_by_laps(session_a.laps) if d in common_drivers]
+    default_driver = common_drivers.index(ranked[0]) if ranked else 0
+    driver = st.selectbox("🧑‍✈️ Select Driver", common_drivers,
+                          index=default_driver, key="yvy_driver")
 
-    laps_a = session_a.laps.pick_drivers(driver).pick_accurate()
-    laps_b = session_b.laps.pick_drivers(driver).pick_accurate()
-
-    laps_a = laps_a[laps_a["Compound"] != "TEST_UNKNOWN"]
-    laps_b = laps_b[laps_b["Compound"] != "TEST_UNKNOWN"]
+    laps_a = clean_laps(session_a.laps, driver)
+    laps_b = clean_laps(session_b.laps, driver)
 
     if laps_a.empty or laps_b.empty:
         st.warning("⚠️ Not enough accurate laps for this driver in one of the years.")
@@ -258,7 +291,11 @@ if mode == "Year vs Year":
 
 # -------------------- YEAR / EVENT / SESSION (remaining modes) --------------------
 
-year = st.selectbox("Select Year", LAP_YEARS)
+# CHANGED 10: year, Grand Prix and session sit in one row instead of three stacked full-width boxes
+c_year, c_gp, c_session = st.columns(3)
+
+with c_year:
+    year = st.selectbox("Select Year", LAP_YEARS)
 
 try:
     schedule = get_schedule(year)
@@ -269,15 +306,19 @@ except Exception as e:
     st.stop()
 
 event_names = schedule["EventName"].tolist()
-event_name = st.selectbox("Select Grand Prix", event_names)
+with c_gp:
+    event_name = st.selectbox("Select Grand Prix", event_names)
 event = schedule[schedule["EventName"] == event_name].iloc[0]
 
-session_type = st.selectbox("Select Session", session_names(event))
+names = session_names(event)
+with c_session:
+    session_type = st.selectbox("Select Session", names, index=default_session_index(names))
 
 # Only the Telemetry mode needs the heavy telemetry download
 needs_telemetry = mode == "Telemetry"
 
-with st.spinner("Loading session data..."):
+# CHANGED 9 (continued): same friendlier spinner message
+with st.spinner("Loading session data... the first load can take a few minutes"):
     session, load_error = try_load(year, event_name, session_type, needs_telemetry)
 
 if session is None:
@@ -291,44 +332,62 @@ if not drivers:
     st.warning("No drivers found for this session.")
     st.stop()
 
-# -------------------- TIRE PERFORMANCE --------------------
+ranked_drivers = drivers_by_laps(laps)
 
-if mode == "Tire Performance":
+# -------------------- TYRE PERFORMANCE --------------------
 
-    driver = st.selectbox("Select Driver", drivers)
+if mode == MODE_TYRE:
 
-    driver_laps = laps.pick_drivers(driver).pick_accurate()
-    driver_laps = driver_laps[driver_laps["Compound"] != "TEST_UNKNOWN"]
+    driver = st.selectbox("Select Driver", drivers, index=drivers.index(ranked_drivers[0]))
+
+    driver_laps = clean_laps(laps, driver)
 
     if driver_laps.empty:
         st.warning("No accurate laps found for this driver in this session.")
         st.stop()
 
-    st.subheader("🛞 Tire Performance")
+    st.subheader("🛞 Tyre Performance")
 
-    plt.style.use("dark_background")
-    fig, ax = plt.subplots(figsize=(12, 7))
+    # CHANGED 11: dots on a lap-time axis instead of bars that start at zero.
+    # With bars every lap looked about the same length, so pace differences were invisible.
+    fig = go.Figure()
 
-    lap_times = driver_laps["LapTime"].dt.total_seconds()
-    colors = driver_laps["Compound"].map(COLOR_MAP).fillna("#888888")
+    for _, stint in driver_laps.groupby("Stint"):
+        fig.add_trace(go.Scatter(
+            x=stint["LapNumber"],
+            y=stint["LapTime"].dt.total_seconds(),
+            mode="lines",
+            line=dict(color="#555555", width=1),
+            hoverinfo="skip",
+            showlegend=False,
+        ))
 
-    ax.barh(driver_laps["LapNumber"], lap_times, color=colors)
+    for compound, group in driver_laps.groupby("Compound"):
+        fig.add_trace(go.Scatter(
+            x=group["LapNumber"],
+            y=group["LapTime"].dt.total_seconds(),
+            mode="markers",
+            name=str(compound).title(),   # legend lists only the compounds this driver used
+            marker=dict(size=8, color=COLOR_MAP.get(compound, "#888888"),
+                        line=dict(color="black", width=1)),
+            hovertemplate="Lap %{x}<br>Time: %{y:.2f}s<extra></extra>",
+        ))
 
-    ax.set_title(f"{event_name} - {driver} ({year})")
-    ax.set_xlabel("Lap Time (seconds)")
-    ax.set_ylabel("Lap Number")
-    ax.grid(True)
+    fig.update_layout(
+        template="plotly_dark",
+        title=f"{event_name} - {driver} ({session_type} {year})",
+        xaxis_title="Lap Number",
+        yaxis_title="Lap Time (seconds)",
+        legend_title_text="Tyre compound",
+        height=520,
+    )
+    st.plotly_chart(fig)
 
-    legend_elements = [
-        Patch(facecolor="#ff4d4d", label="Soft"),
-        Patch(facecolor="#ffd700", label="Medium"),
-        Patch(facecolor="#cccccc", label="Hard"),
-        Patch(facecolor="#00cc44", label="Intermediate"),
-        Patch(facecolor="#0066ff", label="Wet"),
-    ]
-    ax.legend(handles=legend_elements, title="Tire Compound")
-
-    st.pyplot(fig)
+    # CHANGED 12: honest note about what this chart can and cannot show
+    st.caption(
+        "Lap times are not fuel-corrected, so a flat or falling line does not mean the tyres are "
+        "not wearing. The repo's tyre_deg.py gives the fuel-corrected analysis."
+    )
 
 # -------------------- COMPARISON --------------------
 
@@ -338,21 +397,22 @@ elif mode == "Comparison":
         st.warning("Need at least two drivers with data for this session.")
         st.stop()
 
+    # CHANGED 7 (continued): defaults are the two drivers with the most laps
+    default1 = drivers.index(ranked_drivers[0])
+    default2 = drivers.index(ranked_drivers[1])
+
     col1, col2 = st.columns(2)
     with col1:
-        driver1 = st.selectbox("Driver 1", drivers)
+        driver1 = st.selectbox("Driver 1", drivers, index=default1)
     with col2:
-        driver2 = st.selectbox("Driver 2", drivers, index=1)
+        driver2 = st.selectbox("Driver 2", drivers, index=default2)
 
     if driver1 == driver2:
         st.warning("⚠️ Select two different drivers")
         st.stop()
 
-    laps1 = laps.pick_drivers(driver1).pick_accurate()
-    laps2 = laps.pick_drivers(driver2).pick_accurate()
-
-    laps1 = laps1[laps1["Compound"] != "TEST_UNKNOWN"]
-    laps2 = laps2[laps2["Compound"] != "TEST_UNKNOWN"]
+    laps1 = clean_laps(laps, driver1)
+    laps2 = clean_laps(laps, driver2)
 
     if laps1.empty or laps2.empty:
         st.warning("Not enough accurate laps for one of these drivers.")
@@ -360,22 +420,30 @@ elif mode == "Comparison":
 
     st.subheader("🛞 Comparison")
 
-    plt.style.use("dark_background")
-    fig, ax = plt.subplots(figsize=(12, 7))
-
     lap_times1 = laps1["LapTime"].dt.total_seconds()
     lap_times2 = laps2["LapTime"].dt.total_seconds()
 
-    ax.barh(laps1["LapNumber"] - 0.2, lap_times1, height=0.4, label=driver1)
-    ax.barh(laps2["LapNumber"] + 0.2, lap_times2, height=0.4, label=driver2)
+    # CHANGED 13: two lines on a lap-time axis instead of paired bars from zero
+    fig = go.Figure()
+    for drv, drv_laps, times in ((driver1, laps1, lap_times1), (driver2, laps2, lap_times2)):
+        fig.add_trace(go.Scatter(
+            x=drv_laps["LapNumber"],
+            y=times,
+            mode="lines+markers",
+            name=drv,
+            marker=dict(size=6),
+            hovertemplate=f"<b>{drv}</b><br>Lap %{{x}}<br>Time: %{{y:.2f}}s<extra></extra>",
+        ))
 
-    ax.set_title(f"{driver1} vs {driver2} — {event_name} ({year})")
-    ax.set_xlabel("Lap Time (seconds)")
-    ax.set_ylabel("Lap Number")
-    ax.legend()
-    ax.grid(True)
-
-    st.pyplot(fig)
+    fig.update_layout(
+        template="plotly_dark",
+        title=f"{driver1} vs {driver2} — {event_name} ({year})",
+        xaxis_title="Lap Number",
+        yaxis_title="Lap Time (seconds)",
+        hovermode="x unified",
+        height=520,
+    )
+    st.plotly_chart(fig)
 
     col1, col2 = st.columns(2)
     with col1:
@@ -393,11 +461,14 @@ elif mode == "Telemetry":
 
     st.subheader("📈 Interactive Telemetry")
 
+    default1 = drivers.index(ranked_drivers[0])
+    default2 = drivers.index(ranked_drivers[1])
+
     col1, col2 = st.columns(2)
     with col1:
-        driver1 = st.selectbox("Driver 1", drivers)
+        driver1 = st.selectbox("Driver 1", drivers, index=default1)
     with col2:
-        driver2 = st.selectbox("Driver 2", drivers, index=1)
+        driver2 = st.selectbox("Driver 2", drivers, index=default2)
 
     if driver1 == driver2:
         st.warning("⚠️ Select two different drivers")
