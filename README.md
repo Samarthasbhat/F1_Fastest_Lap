@@ -113,4 +113,6 @@ Python, FastF1, pandas, NumPy, Matplotlib, pytest, Streamlit
 
 Timing data comes from the Formula 1 live timing service through FastF1. This project is unofficial and is not associated with Formula 1, the FIA or any team. Formula 1, F1 and related marks are trademarks of their respective owners.
 
+## License
 
+MIT. See the [LICENSE](LICENSE) file.
